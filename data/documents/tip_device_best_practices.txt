@@ -1,0 +1,58 @@
+Device Best Practices for Energy Efficiency
+
+Electric Vehicle (EV) Charging Best Practices:
+- Charge during off-peak hours (typically 10 PM - 6 AM) to take advantage of lower electricity rates
+- Use solar power for charging whenever possible during daylight hours
+- Set charge limits to 80% for daily use to extend battery life and reduce charging time
+- Preheat or precool your EV while still plugged in to avoid draining the battery
+- Use scheduled charging features to automatically charge during optimal times
+- Consider level 2 charging (240V) for faster, more efficient charging at home
+
+HVAC System Optimization:
+- Set thermostats to 78°F in summer and 68°F in winter for optimal energy savings
+- Use programmable thermostats to automatically adjust temperatures when away
+- Maintain a 7-10°F setback for 8 hours can save up to 10% annually on heating and cooling
+- Clean or replace HVAC filters monthly to maintain efficiency
+- Schedule HVAC maintenance twice yearly (spring and fall)
+- Use ceiling fans to circulate air and reduce HVAC load
+
+Dishwasher Efficiency:
+- Run only full loads to maximize energy efficiency
+- Use eco or energy-saver modes which use less hot water
+- Air dry dishes instead of heat drying to save 15-50% of energy per load
+- Run during off-peak hours or when solar generation is high
+- Scrape dishes instead of pre-rinsing to save water and energy
+- Modern dishwashers use less water than hand washing
+
+Washing Machine and Dryer:
+- Wash clothes in cold water when possible - saves up to 90% of energy per load
+- Run full loads but don't overload to ensure proper cleaning
+- Use high spin speeds to extract more water before drying
+- Clean dryer lint filter before each load
+- Use moisture sensors on dryers to avoid over-drying
+- Dry similar fabrics together for more efficient drying
+- Consider air-drying clothes when weather permits
+
+Pool Pump Optimization:
+- Run pool pumps during off-peak hours or mid-day when solar is generating
+- Use variable speed pumps which use 50-75% less energy
+- Run pump for 6-8 hours daily in summer, 4-6 hours in winter
+- Clean filters regularly to maintain pump efficiency
+- Use a pool cover to reduce evaporation and maintain temperature
+- Consider a timer to automate pump operation during optimal hours
+
+Water Heater Efficiency:
+- Set water heater to 120°F for optimal efficiency and safety
+- Insulate water heater tank and hot water pipes
+- Use low-flow fixtures to reduce hot water consumption
+- Consider heat pump water heaters which are 2-3x more efficient
+- Schedule hot water use during off-peak hours when possible
+- Drain sediment from tank annually
+
+Smart Home Device Integration:
+- Use smart plugs to monitor and control energy usage of devices
+- Set up automation rules to turn off devices when not in use
+- Monitor standby power consumption and eliminate phantom loads
+- Integrate devices with solar generation data for optimized operation
+- Use occupancy sensors for lighting and HVAC control
+- Schedule high-energy devices during periods of high solar generation

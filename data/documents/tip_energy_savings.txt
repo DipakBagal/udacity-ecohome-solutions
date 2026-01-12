@@ -1,0 +1,97 @@
+General Energy Savings Tips and Strategies
+
+Understanding Your Energy Bill:
+- Peak hours typically 2 PM - 8 PM when electricity is most expensive
+- Off-peak hours typically 10 PM - 6 AM with lowest rates
+- Shoulder hours (mid-morning and late evening) have moderate rates
+- Time-of-use (TOU) rates can vary by 2-3x between peak and off-peak
+- Demand charges based on highest usage during billing period
+- Fixed charges and delivery fees are constant regardless of usage
+
+Solar Power Maximization:
+- Peak solar generation typically occurs 10 AM - 2 PM
+- Orient solar panels south for maximum year-round production
+- Keep panels clean - dirt can reduce efficiency by 5-20%
+- Monitor panel performance to detect issues early
+- Use excess solar power during generation hours
+- Consider battery storage to use solar power during peak rate hours
+- Size solar system to match annual energy consumption
+- Solar production varies by season - plan device usage accordingly
+
+Load Shifting Strategies:
+- Move high-energy tasks to off-peak or solar generation hours
+- Pre-cool or pre-heat home before peak rate periods
+- Charge electric vehicles overnight or during high solar generation
+- Run dishwashers, washing machines, and dryers during off-peak times
+- Use timers and smart plugs to automate load shifting
+- Consider thermal mass storage (e.g., hot water) during low-rate periods
+
+Seasonal Energy Management:
+Summer Tips:
+- Close blinds and curtains during hottest parts of day
+- Use natural ventilation during cooler mornings and evenings
+- Set AC temperature higher when away
+- Use ceiling fans to make rooms feel 4-6°F cooler
+- Grill outdoors to avoid heating the house
+- Service AC before summer begins
+
+Winter Tips:
+- Let sunlight in during the day to naturally warm home
+- Seal air leaks around windows and doors
+- Use programmable thermostats to reduce heating when away
+- Reverse ceiling fan direction to push warm air down
+- Insulate attic and walls to prevent heat loss
+- Service heating system before winter begins
+
+Reducing Phantom Loads:
+- Phantom loads account for 5-10% of residential electricity use
+- Unplug chargers and devices when not in use
+- Use smart power strips that cut power to idle devices
+- Turn off computers and monitors completely rather than sleep mode
+- Disable instant-on features on TVs and gaming consoles
+- Unplug rarely used appliances
+
+Behavioral Energy Savings:
+- Turn off lights when leaving a room - saves 10-20% on lighting costs
+- Use natural daylight whenever possible
+- Take shorter showers to reduce water heating costs
+- Don't leave refrigerator door open unnecessarily
+- Defrost freezer regularly to maintain efficiency
+- Cook multiple dishes at once to maximize oven use
+- Use microwave or toaster oven for small meals instead of full oven
+
+Appliance and Equipment Upgrades:
+- ENERGY STAR appliances use 10-50% less energy
+- LED bulbs use 75% less energy than incandescent bulbs
+- Smart thermostats can save 10-23% on heating and cooling
+- High-efficiency HVAC systems can save 20-40% on climate control
+- Tankless water heaters are more efficient for low usage homes
+- Variable speed pool pumps can save $300-500 annually
+- Consider upgrade payback period when making decisions
+
+Home Envelope Improvements:
+- Proper insulation can reduce heating/cooling costs by 20-30%
+- Air sealing prevents conditioned air from escaping
+- Energy-efficient windows reduce heat transfer
+- Weatherstripping doors and windows prevents drafts
+- Insulate hot water pipes to reduce heat loss
+- Add insulation to attic, walls, and basement
+- Use door sweeps to block air leaks
+
+Monitoring and Tracking:
+- Install an energy monitoring system to track real-time usage
+- Review monthly energy bills to identify trends
+- Set energy reduction goals and track progress
+- Compare usage year-over-year to measure improvements
+- Use smart meters to understand hourly usage patterns
+- Identify energy hogs and prioritize upgrades
+- Benchmark your home against similar homes in your area
+
+Financial Incentives and Programs:
+- Utility rebates for energy-efficient appliances and upgrades
+- Federal tax credits for solar, insulation, and HVAC improvements
+- State and local incentive programs
+- Net metering programs for solar panel owners
+- Time-of-use rate plans to save money on off-peak usage
+- Energy efficiency financing programs
+- Demand response programs for grid support

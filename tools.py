@@ -6,9 +6,10 @@ Tools for weather forecasts, electricity pricing, database queries, and RAG sear
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import random
+import pickle
+import os
+import re
 from langchain_core.tools import tool
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy.orm import Session
@@ -20,14 +21,111 @@ from models.energy import EnergyUsage, SolarGeneration, get_session
 _vector_store = None
 
 
-def initialize_vector_store(persist_directory: str = "./chroma_db") -> Chroma:
-    """Initialize the RAG vector store from knowledge base documents."""
+class SimpleVectorStore:
+    """Simulated vector store using keyword-based search (no API calls needed)"""
+    
+    def __init__(self, persist_directory=None):
+        self.chunks = []
+        self.keywords_list = []
+        self.persist_directory = persist_directory
+        
+    def from_documents(self, documents, persist_directory=None):
+        """Create vector store from documents"""
+        store = SimpleVectorStore(persist_directory)
+        store.chunks = documents
+        
+        # Extract keywords from all chunks
+        for doc in documents:
+            keywords = self._extract_keywords(doc.page_content)
+            store.keywords_list.append(keywords)
+        
+        # Persist if directory specified
+        if persist_directory:
+            store.persist()
+        
+        return store
+    
+    def persist(self):
+        """Save to disk"""
+        if self.persist_directory:
+            os.makedirs(self.persist_directory, exist_ok=True)
+            data = {
+                'chunks': self.chunks,
+                'keywords': self.keywords_list
+            }
+            with open(os.path.join(self.persist_directory, 'vectorstore.pkl'), 'wb') as f:
+                pickle.dump(data, f)
+    
+    def load(self, persist_directory):
+        """Load from disk"""
+        self.persist_directory = persist_directory
+        
+        with open(os.path.join(persist_directory, 'vectorstore.pkl'), 'rb') as f:
+            data = pickle.load(f)
+            self.chunks = data['chunks']
+            self.keywords_list = data['keywords']
+        
+        return self
+    
+    def similarity_search(self, query: str, k: int = 4) -> List:
+        """Search for similar documents using keyword matching"""
+        query_keywords = self._extract_keywords(query)
+        
+        # Calculate similarity scores
+        similarities = []
+        for i, doc_keywords in enumerate(self.keywords_list):
+            # Calculate overlap between query and document keywords
+            overlap = len(query_keywords & doc_keywords)
+            # Normalize by query keywords
+            score = overlap / len(query_keywords) if query_keywords else 0
+            similarities.append((score, i))
+        
+        # Sort by similarity and return top k
+        similarities.sort(reverse=True)
+        top_k = similarities[:k]
+        
+        return [self.chunks[idx] for _, idx in top_k]
+    
+    @staticmethod
+    def _extract_keywords(text: str) -> set:
+        """Extract important keywords from text"""
+        # Convert to lowercase and remove punctuation
+        text = text.lower()
+        text = re.sub(r'[^\w\s]', ' ', text)
+        
+        # Split into words
+        words = text.split()
+        
+        # Remove common stop words
+        stop_words = {
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+            'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+            'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should',
+            'could', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those',
+            'i', 'you', 'he', 'she', 'it', 'we', 'they', 'them', 'their', 'what',
+            'which', 'who', 'when', 'where', 'why', 'how', 'if', 'than', 'so',
+            'up', 'out', 'about', 'into', 'through', 'during', 'before', 'after'
+        }
+        
+        # Filter out stop words and short words
+        keywords = {w for w in words if w not in stop_words and len(w) > 3}
+        
+        return keywords
+
+
+def initialize_vector_store(persist_directory: str = "./chroma_db"):
+    """Initialize the RAG vector store from persisted data or create new one."""
     global _vector_store
     
     if _vector_store is not None:
         return _vector_store
     
-    # Load documents from knowledge base
+    # Try to load existing vector store
+    if os.path.exists(os.path.join(persist_directory, 'vectorstore.pkl')):
+        _vector_store = SimpleVectorStore().load(persist_directory)
+        return _vector_store
+    
+    # Create new vector store from documents
     loader = DirectoryLoader(
         "./data/documents/",
         glob="**/*.txt",
@@ -44,11 +142,9 @@ def initialize_vector_store(persist_directory: str = "./chroma_db") -> Chroma:
     )
     chunks = text_splitter.split_documents(documents)
     
-    # Create vector store
-    embeddings = OpenAIEmbeddings()
-    _vector_store = Chroma.from_documents(
+    # Create simulated vector store
+    _vector_store = SimpleVectorStore().from_documents(
         documents=chunks,
-        embedding=embeddings,
         persist_directory=persist_directory
     )
     

@@ -10,7 +10,7 @@ from langchain_core.tools import tool
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from models.energy import EnergyUsage, SolarGeneration, get_session
@@ -206,22 +206,17 @@ def query_energy_usage(
     Returns:
         Energy usage statistics and insights
     """
-    session = get_session()
+    db_path = "data/energy_data.db"
+    session = get_session(db_path)
     
     try:
         start = datetime.strptime(start_date, "%Y-%m-%d")
         end = datetime.strptime(end_date, "%Y-%m-%d")
         
-        # Query energy usage
-        query = session.query(
-            func.sum(EnergyUsage.total_kwh).label("total_usage"),
-            func.avg(EnergyUsage.total_kwh).label("avg_usage"),
-            func.max(EnergyUsage.total_kwh).label("max_usage"),
-            func.min(EnergyUsage.total_kwh).label("min_usage"),
-            func.avg(EnergyUsage.hvac_kwh).label("avg_hvac"),
-            func.avg(EnergyUsage.appliances_kwh).label("avg_appliances"),
-            func.avg(EnergyUsage.ev_charging_kwh).label("avg_ev"),
-            func.avg(EnergyUsage.other_kwh).label("avg_other")
+        # Query total energy usage (sum across all devices)
+        total_query = session.query(
+            func.sum(EnergyUsage.energy_kwh).label("total_usage"),
+            func.sum(EnergyUsage.cost_usd).label("total_cost")
         ).filter(
             and_(
                 EnergyUsage.timestamp >= start,
@@ -229,52 +224,73 @@ def query_energy_usage(
             )
         )
         
-        result = query.first()
+        total_result = total_query.first()
         
-        if result.total_usage is None:
+        if total_result.total_usage is None:
             return f"No energy usage data found for {start_date} to {end_date}"
+        
+        # Query usage by device type
+        by_device_query = session.query(
+            EnergyUsage.device_type,
+            func.sum(EnergyUsage.energy_kwh).label("total_kwh"),
+            func.sum(EnergyUsage.cost_usd).label("total_cost")
+        ).filter(
+            and_(
+                EnergyUsage.timestamp >= start,
+                EnergyUsage.timestamp <= end
+            )
+        ).group_by(EnergyUsage.device_type)
+        
+        device_results = by_device_query.all()
         
         # Calculate days in range
         days = (end - start).days + 1
         
         # Format output
         output = f"Energy Usage Summary ({start_date} to {end_date}):\n\n"
-        output += f"Total Usage: {result.total_usage:.2f} kWh over {days} days\n"
-        output += f"Average Daily Usage: {result.avg_usage:.2f} kWh\n"
-        output += f"Peak Daily Usage: {result.max_usage:.2f} kWh\n"
-        output += f"Minimum Daily Usage: {result.min_usage:.2f} kWh\n\n"
+        output += f"Total Usage: {total_result.total_usage:.2f} kWh over {days} days\n"
+        output += f"Average Daily Usage: {total_result.total_usage/days:.2f} kWh\n"
+        output += f"Total Cost: ${total_result.total_cost:.2f}\n"
+        output += f"Average Daily Cost: ${total_result.total_cost/days:.2f}\n\n"
         
-        output += "Usage Breakdown by Category:\n"
-        output += f"  HVAC: {result.avg_hvac:.2f} kWh/day ({result.avg_hvac/result.avg_usage*100:.1f}%)\n"
-        output += f"  Appliances: {result.avg_appliances:.2f} kWh/day ({result.avg_appliances/result.avg_usage*100:.1f}%)\n"
-        output += f"  EV Charging: {result.avg_ev:.2f} kWh/day ({result.avg_ev/result.avg_usage*100:.1f}%)\n"
-        output += f"  Other: {result.avg_other:.2f} kWh/day ({result.avg_other/result.avg_usage*100:.1f}%)\n\n"
+        output += "Usage Breakdown by Device Type:\n"
+        device_data = {}
+        for row in device_results:
+            device_type = row.device_type
+            kwh = row.total_kwh
+            cost = row.total_cost
+            pct = (kwh / total_result.total_usage * 100) if total_result.total_usage > 0 else 0
+            output += f"  {device_type.upper()}: {kwh:.2f} kWh/period ({pct:.1f}%), ${cost:.2f}\n"
+            device_data[device_type] = {'kwh': kwh, 'pct': pct}
         
         # Add insights
-        output += "Insights:\n"
+        output += "\nInsights:\n"
         
         # HVAC insights
-        hvac_pct = result.avg_hvac / result.avg_usage * 100
-        if hvac_pct > 50:
-            output += f"- HVAC is {hvac_pct:.0f}% of usage - consider optimizing thermostat settings\n"
-        elif hvac_pct > 40:
-            output += f"- HVAC usage at {hvac_pct:.0f}% is typical for many homes\n"
-        else:
-            output += f"- HVAC usage at {hvac_pct:.0f}% is relatively low - good job!\n"
+        if 'hvac' in device_data:
+            hvac_pct = device_data['hvac']['pct']
+            if hvac_pct > 50:
+                output += f"- HVAC is {hvac_pct:.0f}% of usage - consider optimizing thermostat settings\n"
+            elif hvac_pct > 40:
+                output += f"- HVAC usage at {hvac_pct:.0f}% is typical for many homes\n"
+            else:
+                output += f"- HVAC usage at {hvac_pct:.0f}% is relatively low - good job!\n"
         
         # EV insights
-        ev_pct = result.avg_ev / result.avg_usage * 100
-        if ev_pct > 30:
-            output += f"- High EV charging at {ev_pct:.0f}% - ensure charging during off-peak or solar hours\n"
-        elif ev_pct > 0:
-            output += f"- EV charging at {ev_pct:.0f}% of usage - monitor charging schedules\n"
+        if 'ev_charger' in device_data:
+            ev_pct = device_data['ev_charger']['pct']
+            if ev_pct > 30:
+                output += f"- High EV charging at {ev_pct:.0f}% - ensure charging during off-peak or solar hours\n"
+            else:
+                output += f"- EV charging at {ev_pct:.0f}% of usage - monitor charging schedules\n"
         
         # Daily usage insights
-        if result.avg_usage > 40:
-            output += f"- Average daily usage of {result.avg_usage:.1f} kWh is above typical (30-35 kWh)\n"
+        avg_daily = total_result.total_usage / days
+        if avg_daily > 40:
+            output += f"- Average daily usage of {avg_daily:.1f} kWh is above typical (30-35 kWh)\n"
             output += "  Consider energy audit to identify savings opportunities\n"
-        elif result.avg_usage < 25:
-            output += f"- Excellent! Average usage of {result.avg_usage:.1f} kWh is below typical\n"
+        elif avg_daily < 25:
+            output += f"- Excellent! Average usage of {avg_daily:.1f} kWh is below typical\n"
         
         return output
         
@@ -299,21 +315,20 @@ def query_solar_generation(
     Returns:
         Solar generation statistics and insights
     """
-    session = get_session()
+    db_path = "data/energy_data.db"
+    session = get_session(db_path)
     
     try:
         start = datetime.strptime(start_date, "%Y-%m-%d")
         end = datetime.strptime(end_date, "%Y-%m-%d")
         
-        # Query solar generation
+        # Query solar generation (use correct column name: generation_kwh)
         query = session.query(
-            func.sum(SolarGeneration.generated_kwh).label("total_generation"),
-            func.avg(SolarGeneration.generated_kwh).label("avg_generation"),
-            func.max(SolarGeneration.generated_kwh).label("max_generation"),
-            func.min(SolarGeneration.generated_kwh).label("min_generation"),
-            func.avg(SolarGeneration.self_consumed_kwh).label("avg_self_consumed"),
-            func.avg(SolarGeneration.exported_kwh).label("avg_exported"),
-            func.avg(SolarGeneration.battery_stored_kwh).label("avg_stored")
+            func.sum(SolarGeneration.generation_kwh).label("total_generation"),
+            func.avg(SolarGeneration.generation_kwh).label("avg_generation"),
+            func.max(SolarGeneration.generation_kwh).label("max_generation"),
+            func.min(SolarGeneration.generation_kwh).label("min_generation"),
+            func.count(SolarGeneration.id).label("record_count")
         ).filter(
             and_(
                 SolarGeneration.timestamp >= start,
@@ -328,7 +343,7 @@ def query_solar_generation(
         
         # Also get energy usage for comparison
         usage_query = session.query(
-            func.avg(EnergyUsage.total_kwh).label("avg_usage")
+            func.sum(EnergyUsage.energy_kwh).label("total_usage")
         ).filter(
             and_(
                 EnergyUsage.timestamp >= start,
@@ -343,52 +358,51 @@ def query_solar_generation(
         # Format output
         output = f"Solar Generation Summary ({start_date} to {end_date}):\n\n"
         output += f"Total Generation: {result.total_generation:.2f} kWh over {days} days\n"
-        output += f"Average Daily Generation: {result.avg_generation:.2f} kWh\n"
-        output += f"Peak Daily Generation: {result.max_generation:.2f} kWh\n"
-        output += f"Minimum Daily Generation: {result.min_generation:.2f} kWh\n\n"
+        output += f"Average Daily Generation: {result.total_generation/days:.2f} kWh\n"
+        output += f"Peak Hourly Generation: {result.max_generation:.2f} kWh\n"
+        output += f"Minimum Hourly Generation: {result.min_generation:.2f} kWh\n\n"
         
-        output += "Solar Energy Distribution:\n"
-        output += f"  Self-Consumed: {result.avg_self_consumed:.2f} kWh/day ({result.avg_self_consumed/result.avg_generation*100:.1f}%)\n"
-        output += f"  Exported to Grid: {result.avg_exported:.2f} kWh/day ({result.avg_exported/result.avg_generation*100:.1f}%)\n"
-        output += f"  Stored in Battery: {result.avg_stored:.2f} kWh/day ({result.avg_stored/result.avg_generation*100:.1f}%)\n\n"
+        # Calculate weather-based insights from data
+        sunny_query = session.query(
+            func.avg(SolarGeneration.generation_kwh).label("avg_gen")
+        ).filter(
+            and_(
+                SolarGeneration.timestamp >= start,
+                SolarGeneration.timestamp <= end,
+                SolarGeneration.weather_condition == 'sunny'
+            )
+        )
+        sunny_result = sunny_query.first()
+        
+        if sunny_result.avg_gen:
+            output += f"Average Generation on Sunny Days: {sunny_result.avg_gen:.2f} kWh/hour\n\n"
         
         # Add insights
         output += "Insights:\n"
         
-        # Self-consumption rate
-        self_consumption_rate = result.avg_self_consumed / result.avg_generation * 100
-        if self_consumption_rate < 50:
-            output += f"- Self-consumption rate of {self_consumption_rate:.0f}% is low\n"
-            output += "  Tip: Increase battery storage or shift usage to solar hours\n"
-        elif self_consumption_rate < 70:
-            output += f"- Self-consumption rate of {self_consumption_rate:.0f}% is moderate\n"
-            output += "  Tip: Consider adding battery storage to capture more solar\n"
-        else:
-            output += f"- Excellent self-consumption rate of {self_consumption_rate:.0f}%!\n"
-        
-        # Solar offset
-        if usage_result.avg_usage:
-            solar_offset = (result.avg_generation / usage_result.avg_usage) * 100
-            output += f"- Solar offsets {solar_offset:.0f}% of your daily energy usage\n"
+        # Solar offset calculation
+        if usage_result.total_usage and usage_result.total_usage > 0:
+            solar_offset = (result.total_generation / usage_result.total_usage) * 100
+            output += f"- Solar offsets {solar_offset:.0f}% of your energy usage\n"
             if solar_offset >= 100:
                 output += "  Excellent! You're generating more than you use\n"
             elif solar_offset >= 70:
-                output += "  Great solar coverage - consider battery to increase self-consumption\n"
+                output += "  Great solar coverage!\n"
             else:
                 output += "  Consider expanding solar array or reducing usage\n"
         
-        # Export insights
-        export_rate = result.avg_exported / result.avg_generation * 100
-        if export_rate > 40:
-            output += f"- High export rate of {export_rate:.0f}% - consider adding battery storage\n"
-            output += "  Storing excess solar can provide greater value than export rates\n"
+        # Daily generation assessment
+        avg_daily = result.total_generation / days
+        if avg_daily > 35:
+            output += f"- Strong daily generation of {avg_daily:.1f} kWh\n"
+        elif avg_daily > 20:
+            output += f"- Moderate daily generation of {avg_daily:.1f} kWh\n"
+        else:
+            output += f"- Generation of {avg_daily:.1f} kWh/day - check for shading or maintenance needs\n"
         
-        # Storage insights  
-        storage_rate = result.avg_stored / result.avg_generation * 100
-        if storage_rate > 30:
-            output += f"- Good battery utilization at {storage_rate:.0f}% of generation\n"
-        elif storage_rate > 0:
-            output += f"- Battery storage at {storage_rate:.0f}% - room to optimize storage strategy\n"
+        # Peak generation insights
+        if result.max_generation > 5:
+            output += f"- Peak generation of {result.max_generation:.1f} kWh shows good system capacity\n"
         
         return output
         
